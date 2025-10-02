@@ -19,18 +19,16 @@
 
 package org.codefu.p3widescreen;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.util.HashMap;
+import java.util.logging.Logger;
 
 class CPRFile {
     // We use this for both file names as well as text files extracted
     // from the archive.
     public static final String CHARSET = "ISO-8859-1";
 
-    private static final Logger logger = LoggerFactory.getLogger(CPRFile.class);
+    private static final Logger logger = Logger.getLogger(CPRFile.class.getName());
 
     private final RandomAccessFile fp;
     private final HashMap<String, IndexEntry> index = new HashMap<>();
@@ -56,13 +54,13 @@ class CPRFile {
         }
         long nextHeader = 0x20;
         while (true) {
-            logger.debug("moving to header at {}", nextHeader);
+            logger.fine(String.format("moving to header at %d", nextHeader));
             fp.seek(nextHeader);
             long headerLength;
             try {
                 headerLength = readLittleEndianInt();
             } catch (EOFException e) {
-                logger.debug("hit EOF trying to read new header, as expected");
+                logger.fine("hit EOF trying to read new header, as expected");
                 break;
             }
             // This is something like length of the header minus the first
@@ -70,7 +68,7 @@ class CPRFile {
             skipBytes(4);
             long numFiles = readLittleEndianInt();
             long nextHeaderOffset = readLittleEndianInt();
-            logger.debug("read nextHeaderOffset {}", nextHeaderOffset);
+            logger.fine(String.format("read nextHeaderOffset %d", nextHeaderOffset));
             for (int i = 0; i < numFiles; i++) {
                 readIndexEntry();
             }
@@ -96,7 +94,7 @@ class CPRFile {
         // Don't know what this is, I think it's always 1?
         skipBytes(4);
         String name = readNullTerminatedString();
-        logger.debug("read file={} offset={} length={}", name, offset, length);
+        logger.fine(String.format("read file=%s offset=%d length=%d", name, offset, length));
         index.put(name, new IndexEntry(offset, length));
     }
 

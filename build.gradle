@@ -30,7 +30,6 @@ repositories {
 
 dependencies {
     implementation 'com.miglayout:miglayout-swing:11.4'
-    implementation 'org.slf4j:slf4j-jdk14:2.0.16'
     implementation 'com.mortennobel:java-image-scaling:0.8.5'
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
 }

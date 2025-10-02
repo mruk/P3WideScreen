@@ -19,17 +19,15 @@
 
 package org.codefu.p3widescreen;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.logging.Logger;
 
 class DWordBinaryPatch {
     private static final int FILL_IN_DWORD = -1;
-    private Logger logger = LoggerFactory.getLogger(DWordBinaryPatch.class);
+    private Logger logger = Logger.getLogger(DWordBinaryPatch.class.getName());
     private final long offset;
     private final int patchLength;
     private final int numValuesToFillIn;

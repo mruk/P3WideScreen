@@ -21,8 +21,6 @@ package org.codefu.p3widescreen;
 
 import com.mortennobel.imagescaling.AdvancedResizeOp;
 import com.mortennobel.imagescaling.ResampleOp;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import javax.swing.*;
@@ -30,6 +28,8 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 class PatchWorker extends SwingWorker<Void, Void> {
     private static final DWordBinaryPatch[] executablePatches = {
@@ -73,7 +73,7 @@ class PatchWorker extends SwingWorker<Void, Void> {
     private static final String MAIN_SCREEN_IMAGE_NAME =
         "HauptscreenE1280.bmp";
 
-    private static final Logger logger = LoggerFactory.getLogger(PatchWorker.class);
+    private static final Logger logger = Logger.getLogger(PatchWorker.class.getName());
 
     private final File executableFile;
     private final File dataArchiveFile;
@@ -107,7 +107,7 @@ class PatchWorker extends SwingWorker<Void, Void> {
                 new File(directory,
                          String.format("%s.%02d.bak", baseName, suffix));
         }
-        logger.info("backing up {} to {}", file, backupFile);
+        logger.info(String.format("backing up %s to %s", file, backupFile));
         Files.copy(file.toPath(), backupFile.toPath());
     }
 
@@ -116,15 +116,15 @@ class PatchWorker extends SwingWorker<Void, Void> {
         // Look at the calculations done on width and height in
         // method createINIFiles.
         if (width < 284) {
-            logger.error("width must be 284 or greater");
+            logger.severe("width must be 284 or greater");
             checksPassed = false;
         }
         if (height < 600) {
-            logger.error("height must be 600 or greater");
+            logger.severe("height must be 600 or greater");
             checksPassed = false;
         }
         if (!executableFile.canRead()) {
-            logger.error("can't read executable file: {}", executableFile);
+            logger.severe(String.format("can't read executable file: %s", executableFile));
             checksPassed = false;
         } else {
             RandomAccessFile executable =
@@ -132,20 +132,18 @@ class PatchWorker extends SwingWorker<Void, Void> {
             for (DWordBinaryPatch patch : executablePatches) {
                 String patchError = patch.testPatch(executable);
                 if (patchError != null) {
-                    logger.error("error patching {}: {}", executableFile,
-                                 patchError);
+                    logger.severe(String.format("error patching %s: %s", executableFile, patchError));
                     checksPassed = false;
                 }
             }
         }
         if (!dataArchiveFile.canRead()) {
-            logger.error("can't find data archive {}, should be in same"
-                         + " directory as executable", dataArchiveFile);
+            logger.severe(String.format("can't find data archive %s, should be in same directory as executable", dataArchiveFile));
             checksPassed = false;
         }
         for (File directory : new File[] {imagesDirectory, scriptsDirectory}) {
             if (directory.exists() && !directory.isDirectory()) {
-                logger.error("{} exists but is not a directory", directory);
+                logger.severe(String.format("%s exists but is not a directory", directory));
                 checksPassed = false;
             }
         }
@@ -168,7 +166,7 @@ class PatchWorker extends SwingWorker<Void, Void> {
 
     private void patchExecutable() throws IOException {
         backUpFile(executableFile);
-        logger.info("patching {}", executableFile);
+        logger.info(String.format("patching %s", executableFile));
         try (RandomAccessFile executable =
                  new RandomAccessFile(executableFile, "rw")) {
             for (DWordBinaryPatch patch : executablePatches) {
@@ -206,7 +204,7 @@ class PatchWorker extends SwingWorker<Void, Void> {
         if (outputFile.exists()) {
             backUpFile(outputFile);
         }
-        logger.info("producing patched {}", iniFileName);
+        logger.info(String.format("producing patched %s", iniFileName));
         try (Reader origAccelMap = cprFile.getReader("scripts\\" + iniFileName);
              Writer patchedAccelMap =
                  new OutputStreamWriter(new FileOutputStream(outputFile),
@@ -235,7 +233,7 @@ class PatchWorker extends SwingWorker<Void, Void> {
         if (outputBMP.exists()) {
             backUpFile(outputBMP);
         }
-        logger.info("resizing {} to {}x{}", fileName, width, height);
+        logger.info(String.format("resizing %s to %dx%d", fileName, width, height));
         InputStream originalImageStream =
             cprFile.getInputStream("images\\" + fileName);
         BufferedImage original = ImageIO.read(originalImageStream);

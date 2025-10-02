@@ -20,8 +20,6 @@
 package org.codefu.p3widescreen;
 
 import net.miginfocom.swing.MigLayout;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
@@ -36,6 +34,7 @@ import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
 import static javax.swing.SwingWorker.StateValue;
 
@@ -44,8 +43,8 @@ import static javax.swing.SwingWorker.StateValue;
 // https://developer.apple.com/library/mac/documentation/java/conceptual/java14development/07-nativeplatformintegration/nativeplatformintegration.html
 public class App
 {
-    private static final Logger logger = LoggerFactory.getLogger(App.class);
-    private static java.util.logging.Logger packageLogger;
+    private static final Logger logger = Logger.getLogger(App.class.getName());
+    private static Logger packageLogger;
     private static JTextField gameDirectoryTextField;
     private static JTextField widthTextField;
     private static JTextField heightTextField;
@@ -105,18 +104,40 @@ public class App
         try {
             return Integer.parseInt(textField.getText());
         } catch (NumberFormatException e) {
-            logger.error("invalid {}", title);
+            logger.log(Level.SEVERE, "invalid " + title, e);
+            // Inform user via UI as well
+            JOptionPane.showMessageDialog(null,
+                    "Invalid value for: " + title,
+                    "Input error",
+                    JOptionPane.ERROR_MESSAGE);
             throw e;
         }
     }
 
     private static void handlePatchButton(ActionEvent actionEvent) {
+        // Basic validation: ensure directory is provided and exists
+        String dirPath = gameDirectoryTextField.getText();
+        if (dirPath == null || dirPath.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(null,
+                    "Please select the Patrician 3 directory first.",
+                    "Missing directory",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        File dir = new File(dirPath);
+        if (!dir.isDirectory()) {
+            JOptionPane.showMessageDialog(null,
+                    "The selected path is not a directory or does not exist: " + dirPath,
+                    "Invalid directory",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
         int width, height;
         try {
             width = getIntFromTextField(widthTextField, "width");
             height = getIntFromTextField(heightTextField, "height");
         } catch (NumberFormatException e) {
-            // getIntFromTextField logged for us.
+            // getIntFromTextField already logged and showed a dialog.
             return;
         }
         PatchWorker patchButtonWorker =
@@ -124,13 +145,17 @@ public class App
         patchButtonWorker.addPropertyChangeListener(changeEvent -> {
             if (changeEvent.getPropertyName().equals("state")
                 && changeEvent.getNewValue() == StateValue.DONE) {
-                logger.debug("patch control returned");
+                logger.fine("patch control returned");
                 patchButton.setEnabled(true);
                 try {
                     patchButtonWorker.get();
                 } catch (InterruptedException | ExecutionException e) {
-                    logger.error("exception encountered during patching",
-                                 e);
+                    logger.log(Level.SEVERE, "exception encountered during patching", e);
+                    // also notify the user
+                    JOptionPane.showMessageDialog(null,
+                            "An error occurred while patching: " + e.getMessage(),
+                            "Patching error",
+                            JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -180,10 +205,7 @@ public class App
         });
         packageLogger.addHandler(handler);
         packageLogger.setUseParentHandlers(false);
-        Thread.setDefaultUncaughtExceptionHandler(
-            (thread, exception) ->
-                logger.error("uncaught exception on thread {}",
-                             thread, exception));
+        Thread.setDefaultUncaughtExceptionHandler((thread, exception) -> logger.log(Level.SEVERE, "uncaught exception on thread " + thread, exception));
     }
 
     private static void browseForGameDirectory(ActionEvent actionEvent) {
@@ -214,11 +236,9 @@ public class App
         if (returnValue == JFileChooser.APPROVE_OPTION) {
             File gameDirectory = fc.getSelectedFile();
             try {
-                gameDirectoryTextField.setText(
-                    gameDirectory.getCanonicalPath());
+                gameDirectoryTextField.setText(gameDirectory.getCanonicalPath());
             } catch (IOException e) {
-                throw new RuntimeException(
-                    "failed to get path from file chooser", e);
+                throw new RuntimeException("failed to get path from file chooser", e);
             }
         }
     }
