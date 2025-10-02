@@ -1,0 +1,77 @@
+plugins {
+    id 'java'
+    id 'application'
+}
+
+group = 'org.codefu.p3widescreen'
+
+// Project version is read from gradle.properties (semver)
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+    sourceCompatibility = JavaVersion.toVersion(25)
+    targetCompatibility = JavaVersion.toVersion(25)
+}
+
+application {
+    // Gradle 7+: 'mainClass' property; older uses 'mainClassName'
+    mainClass = 'org.codefu.p3widescreen.App'
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        url = uri('https://oss.sonatype.org/content/repositories/snapshots')
+        mavenContent { snapshotsOnly() }
+    }
+}
+
+dependencies {
+    implementation 'com.miglayout:miglayout-swing:11.4'
+    implementation 'org.slf4j:slf4j-jdk14:2.0.16'
+    implementation 'com.mortennobel:java-image-scaling:0.8.5'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.10.2'
+}
+
+// Compiler settings
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.release = 25
+}
+
+// Standard jar manifest (thin jar)
+jar {
+    manifest {
+        attributes 'Main-Class': 'org.codefu.p3widescreen.App'
+    }
+}
+
+// Fat jar task similar to maven-assembly-plugin jar-with-dependencies
+// Produces build/libs/${project.name}-${project.version}-all.jar
+tasks.register('fatJar', Jar) {
+    group = 'build'
+    description = 'Assembles a runnable fat JAR with all runtime dependencies.'
+    archiveClassifier = 'all'
+    from sourceSets.main.output
+    from {
+        configurations.runtimeClasspath.filter { it.name.endsWith('.jar') }.collect { zipTree(it) }
+    }
+    manifest {
+        attributes 'Main-Class': 'org.codefu.p3widescreen.App'
+    }
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+// Automatically build fatJar as part of the standard build
+tasks.named('build') { dependsOn tasks.named('fatJar') }
+
+test {
+    useJUnitPlatform()
+}
+
+wrapper {
+    gradleVersion = '9.1.0'
+    distributionType = Wrapper.DistributionType.BIN
+}

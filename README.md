@@ -4,7 +4,6 @@ I bought [Patrician 3 from GOG][].  It was pretty fun but it's 1024x768 or 1280x
 
 [Patrician 3 from GOG]: http://www.gog.com/game/patrician_3
 
-
 ## How To Use This
 
 **NOTE: I take no responsibility if this breaks your game, deletes your save games, or turns your computer into a murderous AI bent on world domination!**
@@ -13,19 +12,54 @@ This will patch the Patrician 3 game to use a resolution that you select instead
 
 1. Back up your game, including all save games!
 2. Download and install Patrician 3 from GOG.
-3. [Install a Java 8 JRE][java-8] or JDK, if you don't have one installed already.  **It must be Java version 8 or later!**
-4. [Download the latest `P3WideScreen.jar` file][P3WideScreen.jar].
-5. Run the `P3WideScreen.jar` file (hopefully you can just double click it, or else `java -jar P3WideScreen.jar`):
+3. Ensure you have a modern Java runtime (now built with Java 25 toolchain). Java 17+ should also run it, but recommended is Java 25 (current LTS used for build).
+4. Download the latest `P3WideScreen-all.jar` file (fat JAR with dependencies) OR build it yourself (see below).
+5. Run the JAR file (double click if associated, or `java -jar P3WideScreen-all.jar`):
      1. Select the directory where you have installed Patrician 3.
-     2. Enter in the resolution you'd like to use instead of 1280x1024.
+     2. Enter the resolution you'd like to use instead of 1280x1024.
      3. Hit the patch button.
 6. Run Patrician 3 and select the 1280x1024 resolution.
 
-[java-8]: http://www.oracle.com/technetwork/java/javase/downloads/jre8-downloads-2133155.html
-[P3WideScreen.jar]: https://github.com/dsedivec/P3WideScreen/releases/
-
 While the menus may be at a different resolution, once you're actually playing the game, you should be at your selected resolution instead of 1280x1024.
 
+## Building with Gradle (Java 25)
+
+The project has been migrated from Maven to Gradle. A fat JAR is produced automatically when you run the standard build.
+
+### Steps
+
+```bash
+# (Optional) Generate Gradle wrapper if not yet present (requires a local Gradle install once):
+# gradle wrapper
+
+# Show Gradle version (using wrapper once generated)
+./gradlew --version
+
+# Clean & build (compiles + tests + creates thin and fat JAR)
+./gradlew clean build
+
+# Fat JAR output (runnable with all dependencies):
+# build/libs/p3-wide-screen-1.0.0-SNAPSHOT-all.jar
+
+# Run the application directly via Gradle
+./gradlew run
+
+# Or run the fat JAR
+java -jar build/libs/p3-wide-screen-1.0.0-SNAPSHOT-all.jar
+```
+
+On Windows (cmd):
+```cmd
+gradlew clean build
+java -jar build\libs\p3-wide-screen-1.0.0-SNAPSHOT-all.jar
+```
+
+### Toolchain
+We use Gradle's Java Toolchain set to Java 25. If you have the Foojay resolver plugin enabled (as in this repo), IDE/Gradle can auto-provision the matching JDK.
+
+### Why remove Maven?
+Because we live in 21st century!  
+(Gradle configuration is simpler here and consolidates the fat JAR process without needing the assembly plugin.)
 
 ## If Things Go Wrong
 
@@ -51,27 +85,23 @@ I used the [CPR format page on the XeNTaX wiki][cpr] to figure out how to get th
 
 [cpr]: http://wiki.xentax.com/index.php?title=Patrician
 
-
 ## About the Code
 
-I'm sorry if this code sucks ass.  I haven't used Java in anger for 8-10  years.  I decided to write this program in Java because patching Patrician 3 is a pretty simple task, and because I wanted this program to be cross-platform, especially since I'm developing on a Mac.  I decided to use Java 8 because I wanted to get a taste of the new features added to Java since I last used it.  This is probably my first Java GUI program.
-
-I developed this program with IntelliJ IDEA 13.1 Community Edition.
-
+Originally written targeting Java 8; now built and tested with Java 25 using Gradle toolchains. The GUI uses MigLayout (snapshot) and SLF4J (updated to 2.0.x) with the JUL binding.
 
 ## License
 
 Copyright (C) 2014  Dale Sedivec
 
-P3WideScreen is free software: you can redistribute it and/or modify
+**P3WideScreen** is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
-P3WideScreen is distributed in the hope that it will be useful,
+**P3WideScreen** is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with P3WideScreen.  If not, see <http://www.gnu.org/licenses/>.
+along with **P3WideScreen**.  If not, see <http://www.gnu.org/licenses/>.
