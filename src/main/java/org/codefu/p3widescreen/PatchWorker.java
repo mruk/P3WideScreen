@@ -28,6 +28,8 @@ import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.function.Consumer;
+import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -81,8 +83,11 @@ class PatchWorker extends SwingWorker<Void, Void> {
     private final File scriptsDirectory;
     private final int width;
     private final int height;
+    private final Runnable onDone;
+    private final Consumer<Throwable> onError;
 
-    public PatchWorker(String gameDirectoryPath, int width, int height) {
+    public PatchWorker(String gameDirectoryPath, int width, int height,
+                       Runnable onDone, Consumer<Throwable> onError) {
         File gameDirectory = new File(gameDirectoryPath);
         executableFile = new File(gameDirectory, "Patrician3.exe");
         dataArchiveFile = new File(gameDirectory, "p2arch0_eng.cpr");
@@ -90,6 +95,8 @@ class PatchWorker extends SwingWorker<Void, Void> {
         scriptsDirectory = new File(gameDirectory, "scripts");
         this.width = width;
         this.height = height;
+        this.onDone = onDone;
+        this.onError = onError;
     }
 
     private void backUpFile(File file) throws IOException {
@@ -162,6 +169,27 @@ class PatchWorker extends SwingWorker<Void, Void> {
         patchExecutable();
         logger.info("patching complete");
         return null;
+    }
+
+    @Override
+    protected void done() {
+        try {
+            // Will rethrow any exception caught during doInBackground
+            get();
+        } catch (ExecutionException ee) {
+            Throwable cause = ee.getCause();
+            logger.log(Level.SEVERE, "exception in patch worker", cause);
+            if (onError != null) {
+                // done() runs on EDT, so it's safe to call UI callbacks directly
+                onError.accept(cause);
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
+        } finally {
+            if (onDone != null) {
+                onDone.run();
+            }
+        }
     }
 
     private void patchExecutable() throws IOException {

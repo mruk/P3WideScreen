@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 import java.util.logging.Formatter;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -140,27 +141,30 @@ public class App
             // getIntFromTextField already logged and showed a dialog.
             return;
         }
-        PatchWorker patchButtonWorker =
-            new PatchWorker(gameDirectoryTextField.getText(), width, height);
-        patchButtonWorker.addPropertyChangeListener(changeEvent -> {
-            if (changeEvent.getPropertyName().equals("state")
-                && changeEvent.getNewValue() == StateValue.DONE) {
-                logger.fine("patch control returned");
-                patchButton.setEnabled(true);
-                try {
-                    patchButtonWorker.get();
-                } catch (InterruptedException | ExecutionException e) {
-                    logger.log(Level.SEVERE, "exception encountered during patching", e);
-                    // also notify the user
-                    JOptionPane.showMessageDialog(null,
-                            "An error occurred while patching: " + e.getMessage(),
-                            "Patching error",
-                            JOptionPane.ERROR_MESSAGE);
-                }
-            }
-        });
+        // onDone will re-enable the button and optionally show success
+        PatchWorker patchButtonWorker = getPatchWorker(width, height);
         patchButton.setEnabled(false);
         patchButtonWorker.execute();
+    }
+
+    private static PatchWorker getPatchWorker(int width, int height) {
+        Runnable onDone = () -> {
+            patchButton.setEnabled(true);
+            logger.fine("patch worker finished");
+        };
+        // onError will display an error dialog (done() runs on EDT)
+        Consumer<Throwable> onError = (throwable) -> {
+            logger.log(Level.SEVERE, "exception encountered during patching", throwable);
+            JOptionPane.showMessageDialog(null,
+                    "An error occurred while patching: " + throwable.getMessage(),
+                    "Patching error",
+                    JOptionPane.ERROR_MESSAGE);
+        };
+
+        PatchWorker patchButtonWorker = new PatchWorker(
+                gameDirectoryTextField.getText(), width, height,
+                onDone, onError);
+        return patchButtonWorker;
     }
 
     private static void setUpLogging(JTextArea logArea) {
